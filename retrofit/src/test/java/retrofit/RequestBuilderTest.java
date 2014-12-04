@@ -1456,6 +1456,30 @@ public class RequestBuilderTest {
     assertTypedBytes(request.getBody(), "foo=bar&ping=pong");
   }
 
+  @Test public void formEncodedWithEncodedNameFieldParam() {
+    class Example {
+      @FormUrlEncoded //
+      @POST("/foo") //
+      Response method(@Field(value = "na+me", encodeName = false) String foo) {
+        return null;
+      }
+    }
+    Request request = buildRequest(Example.class, "ba r");
+    assertTypedBytes(request.getBody(), "na+me=ba+r");
+  }
+
+  @Test public void formEncodedWithEncodedValueFieldParam() {
+    class Example {
+      @FormUrlEncoded //
+      @POST("/foo") //
+      Response method(@Field(value = "na me", encodeValue = false) String foo) {
+        return null;
+      }
+    }
+    Request request = buildRequest(Example.class, "ba+r");
+    assertTypedBytes(request.getBody(), "na+me=ba+r");
+  }
+
   @Test public void formEncodedFieldOptional() {
     class Example {
       @FormUrlEncoded //
@@ -1509,6 +1533,40 @@ public class RequestBuilderTest {
     int[] values = { 1, 2, 3 };
     Request request = buildRequest(Example.class, values, "kat");
     assertTypedBytes(request.getBody(), "foo=1&foo=2&foo=3&kit=kat");
+  }
+
+  @Test public void formEncodedWithEncodedNameFieldParamMap() {
+    class Example {
+      @FormUrlEncoded //
+      @POST("/foo") //
+      Response method(@FieldMap(encodeNames = false) Map<String, Object> fieldMap) {
+        return null;
+      }
+    }
+
+    Map<String, Object> fieldMap = new LinkedHashMap<String, Object>();
+    fieldMap.put("k+it", "k at");
+    fieldMap.put("pin+g", "po ng");
+
+    Request request = buildRequest(Example.class, fieldMap);
+    assertTypedBytes(request.getBody(), "k+it=k+at&pin+g=po+ng");
+  }
+
+  @Test public void formEncodedWithEncodedValueFieldParamMap() {
+    class Example {
+      @FormUrlEncoded //
+      @POST("/foo") //
+      Response method(@FieldMap(encodeValues = false) Map<String, Object> fieldMap) {
+        return null;
+      }
+    }
+
+    Map<String, Object> fieldMap = new LinkedHashMap<String, Object>();
+    fieldMap.put("k it", "k+at");
+    fieldMap.put("pin g", "po+ng");
+
+    Request request = buildRequest(Example.class, fieldMap);
+    assertTypedBytes(request.getBody(), "k+it=k+at&pin+g=po+ng");
   }
 
   @Test public void formEncodedFieldMap() {
@@ -1676,6 +1734,36 @@ public class RequestBuilderTest {
     assertThat(request.getMethod()).isEqualTo("GET");
     assertThat(request.getHeaders()) //
         .containsExactly(new Header("ping", "pong"), new Header("kit", "kat"));
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/");
+    assertThat(request.getBody()).isNull();
+  }
+
+  @Test public void headerParamList() {
+    class Example {
+      @GET("/foo/bar/") //
+      Response method(@retrofit.http.Header("foo") List<String> kit) {
+        return null;
+      }
+    }
+    Request request = buildRequest(Example.class, Arrays.asList("bar", null, "baz"));
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()) //
+        .containsExactly(new Header("foo", "bar"), new Header("foo", "baz"));
+    assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/");
+    assertThat(request.getBody()).isNull();
+  }
+
+  @Test public void headerParamArray() {
+    class Example {
+      @GET("/foo/bar/") //
+      Response method(@retrofit.http.Header("foo") String[] kit) {
+        return null;
+      }
+    }
+    Request request = buildRequest(Example.class, (Object) new String[] { "bar", null, "baz" });
+    assertThat(request.getMethod()).isEqualTo("GET");
+    assertThat(request.getHeaders()) //
+        .containsExactly(new Header("foo", "bar"), new Header("foo", "baz"));
     assertThat(request.getUrl()).isEqualTo("http://example.com/foo/bar/");
     assertThat(request.getBody()).isNull();
   }
